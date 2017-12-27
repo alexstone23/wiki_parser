@@ -1,72 +1,59 @@
 # -*- coding: utf-8 -*-
 import scrapy
 from wiki_parser.items import WikiParserItem, TableParserItem
-
-from scrapy.linkextractors import LinkExtractor
-from scrapy.contrib.spiders import CrawlSpider, Rule
+from scrapy.spiders import CrawlSpider
 
 
-class WikiSpider(scrapy.Spider):
+class WikiSpider(CrawlSpider):
     name = 'wiki'
-    allowed_domains = ['https://en.wikipedia.org/']
+    allowed_domains = ['en.wikipedia.org']
     start_urls = ['https://en.wikipedia.org/wiki/News_agency']
-    '''
-    rules = (Rule(LinkExtractor(), callback='parse_url', follow=True), )
-    '''
-    '''
-    def parse_url(self, response):
-        item = WikiParserItem()
-        item['url'] = response.url
-        yield item
-        #print(url)
-    '''
-    '''
-        try:
-            yield scrapy.Request(url, callback=self.parse_data)
-        except ValueError:
-            print('Err')
-            pass
-    '''
-    def link_checker(self, url):
-        input_url = url.split('/')
-        if input_url[0] != 'https:':
-            if input_url[0] != 'http:':
-                domain = ''.join(self.allowed_domains)
-                mod_url = "%s%s" % (domain, url.strip('\\').strip('/'))
-                return mod_url
-            else:
-                return url
-        else:
-            return url
 
-    def parse(self, response):
+    # Exclude images, styles, scripts etc.
+    restricted_ext = ['ico', 'js', 'rss', 'css', 'png']
+
+    def links_extractor(self, response):
         arr = []
         for sel in response.xpath('//*[@href]'):
             item = WikiParserItem()
             item['url'] = sel.xpath('@href').extract()
-            #print(item['url'])
 
             for i in item['url']:
-                arr.append(self.link_checker(i))
-        #print(arr)
+                ext = i.split('.')  # Check extension validness
+                if ext[-1] not in self.restricted_ext:
+                    arr.append(i)
+        return arr
+
+    def parse(self, response):
+        arr = self.links_extractor(response)  # Extracting links from start url page
+
         for u in arr:
             try:
-                yield scrapy.Request(u, callback=self.parse_data)
+                yield scrapy.Request(response.urljoin(u), callback=self.parse_data)  # Extracting media information
             except ValueError:
-                print('Err')
                 pass
 
     def parse_data(self, response):
+
         tds = []
         ths = []
         total = []
 
+        # Processing media info card
         for i in response.xpath('//table[@class="infobox vcard"]'):
             items = TableParserItem()
-            items['caption'] = i.xpath('//caption[@class="fn org"]/text()').extract()[0]
-            items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
-            items['table_data'] = {}
+            try:
+                items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
+                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
+                items['table_data'] = {}
+            except:
+                pass
 
+            # If media hasn't at least a name - skipping
+            if not items.get('caption', None):
+                break
+
+            # Extracting cell text
             for t in i.xpath('.//tr/td'):
                 td = t.xpath('.//text()').extract()
                 td = [t.replace('\n', '').replace('\xa0', ' ') for t in td]
@@ -74,16 +61,19 @@ class WikiSpider(scrapy.Spider):
                 if td:
                     tds.append(''.join(td))
 
+            # Extracting th text
             for h in i.xpath('.//tr/th'):
                 th = h.xpath('.//text()').extract()
-                th = [t for t in th if t.replace('\n', '')][0]
+                th = [t for t in th if t.replace('\n', '').replace('\xa0', ' ')][0]
                 ths.append(th)
 
+            # Merging lists
             total = zip(ths, tds)
-            for k, v in total:
-                items['table_data'][k] = v
-
-            #print(items['table_data']['Industry'])
-            #print(items)
+            try:
+                for k, v in total:
+                    # Writing data into dict
+                    items['table_data'][k] = v
+            except KeyError:
+                pass
 
             yield items
