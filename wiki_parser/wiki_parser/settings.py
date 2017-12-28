@@ -13,7 +13,8 @@ BOT_NAME = 'wiki_parser'
 
 SPIDER_MODULES = ['wiki_parser.spiders']
 NEWSPIDER_MODULE = 'wiki_parser.spiders'
-
+DOMAIN_DEPTHS = {'localhost': 1, 'homedepot.com': 4}
+DEPTH_LIMIT = 2
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'wiki_parser (+http://www.yourdomain.com)'
