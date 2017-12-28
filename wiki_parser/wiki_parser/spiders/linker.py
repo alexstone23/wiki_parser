@@ -25,7 +25,7 @@ class LinkerSpider(CrawlSpider):
 
     def start_requests(self):
         for url in self.start_urls:
-            yield scrapy.Request(url, callback=self.parse, dont_filter=True)
+            yield scrapy.Request(url, callback=self.parse, dont_filter=True, priority=1)
 
     def parse_items(self, response):
         items = []
@@ -39,13 +39,13 @@ class LinkerSpider(CrawlSpider):
 
             if is_allowed:
                 item = WikiParserItem()
-                item['name'] = response.url
                 item['url'] = link.url
-                items.append(item)
+                if item.get('url') not in items:
+                    items.append(item.get('url'))
 
         for i in items:
             try:
-                yield scrapy.Request(i.get('url', None), callback=self.parse_data)  # Extracting media information
+                yield scrapy.Request(i, callback=self.parse_data)  # Extracting media information
             except ValueError:
                 pass
 
@@ -87,8 +87,6 @@ class LinkerSpider(CrawlSpider):
                     pass
                 ths.append(th)
 
-
-
             total = zip(ths, tds)
             try:
                 for k, v in total:
@@ -97,34 +95,44 @@ class LinkerSpider(CrawlSpider):
                 pass
 
             data = items.get('table_data', None)
-            content = items.get('content', None)
+
+            type_data = False
+            industry_data = False
 
             if data:
                 industry = data.get('Industry', None)
                 mt = data.get('Type', None)
+                content = items.get('content', None)
 
                 if mt:
                     mt = mt.lower().split(' ')
                     for ii in mt:
-                        if any(ii in media_item for media_item in self.media_types):
+                        if any(media_item in ii for media_item in self.media_types):
                             print('!!!! TYPE !!!!')
-                            print(data)
+                            print(items.get('caption', None))
+                            print(mt)
+                            type_data = True
                             yield items
                             break
 
-                if industry:
-                    industry = industry.lower().split(' ')
-                    for ii in industry:
-                        if any(ii in media_item for media_item in self.media_types):
-                            print('!!!! INDUSTRY !!!!')
-                            print(data)
-                            yield items
-                            break
+                    if not type_data:
+                        if industry:
+                            industry = industry.lower().split(' ')
+                            for ii in industry:
+                                if any(media_item in ii for media_item in self.media_types):
+                                    print('!!!! INDUSTRY !!!!')
+                                    print(items.get('caption', None))
+                                    print(industry)
+                                    industry_data = True
+                                    yield items
+                                    break
 
-            if content:
-                for ii in content:
-                    if any(ii in media_item for media_item in self.media_types):
-                        print('!!!! CONTENT !!!')
-                        print(data)
-                        yield items
-                        break
+                            if not industry_data:
+                                if content:
+                                    for ii in content:
+                                        if any(media_item in ii for media_item in self.media_types):
+                                            print('!!!! CONTENT !!!')
+                                            print(items.get('caption', None))
+                                            print(content)
+                                            yield items
+                                            break
