@@ -18,3 +18,4 @@ class TableParserItem(scrapy.Item):
     logo = scrapy.Field()
     table_data = scrapy.Field()
     content = scrapy.Field()
+    website_link = scrapy.Field()
