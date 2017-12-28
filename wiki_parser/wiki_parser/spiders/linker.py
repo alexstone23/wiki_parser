@@ -84,6 +84,13 @@ class LinkerSpider(CrawlSpider):
                     pass
                 ths.append(th)
 
+            try:
+                c = [w.strip() for w in c if w.replace('\n', '')]
+            except:
+                pass
+
+            items['content'] = c
+
             total = zip(ths, tds)
             try:
                 for k, v in total:
@@ -92,6 +99,7 @@ class LinkerSpider(CrawlSpider):
                 pass
 
             data = items.get('table_data', None)
+            content = items.get('content', None)
 
             if data:
                 industry = data.get('Industry', None)
@@ -114,3 +122,11 @@ class LinkerSpider(CrawlSpider):
                             print(data)
                             yield items
                             break
+
+            if content:
+                for ii in content:
+                    if any(ii in media_item for media_item in self.media_types):
+                        print('!!!! CONTENT !!!')
+                        print(data)
+                        yield items
+                        break

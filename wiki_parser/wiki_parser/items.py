@@ -17,3 +17,4 @@ class TableParserItem(scrapy.Item):
     caption = scrapy.Field()
     logo = scrapy.Field()
     table_data = scrapy.Field()
+    content = scrapy.Field()
