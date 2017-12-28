@@ -55,12 +55,15 @@ class LinkerSpider(CrawlSpider):
         total = []
 
         for i in response.xpath('//table[@class="infobox vcard"]'):
-            items = TableParserItem()
             try:
+                items = TableParserItem()
                 items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
                 items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
                 items['table_data'] = {}
-            except:
+                c = i.xpath('//*[@id="mw-content-text"]/div/p[1]//text()').extract()
+                cont = [w.strip() for w in c if w.replace('\n', '')]
+                items['content'] = cont
+            except IndexError:
                 pass
 
             if not items.get('caption', None):
@@ -84,12 +87,7 @@ class LinkerSpider(CrawlSpider):
                     pass
                 ths.append(th)
 
-            try:
-                c = [w.strip() for w in c if w.replace('\n', '')]
-            except:
-                pass
 
-            items['content'] = c
 
             total = zip(ths, tds)
             try:
