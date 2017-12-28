@@ -56,13 +56,19 @@ class LinkerSpider(CrawlSpider):
 
         for i in response.xpath('//table[@class="infobox vcard"]'):
             try:
+                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
+            except IndexError:
+                pass
+
+            try:
                 items = TableParserItem()
                 items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
-                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
+
                 items['table_data'] = {}
                 c = i.xpath('//*[@id="mw-content-text"]/div/p[1]//text()').extract()
                 cont = [w.strip() for w in c if w.replace('\n', '')]
                 items['content'] = cont
+                items['website_link'] = i.xpath('.//a[@class="external text"]/@href').extract()[0]
             except IndexError:
                 pass
 
@@ -115,24 +121,24 @@ class LinkerSpider(CrawlSpider):
                             yield items
                             break
 
-                    if not type_data:
-                        if industry:
-                            industry = industry.lower().split(' ')
-                            for ii in industry:
-                                if any(media_item in ii for media_item in self.media_types):
-                                    print('!!!! INDUSTRY !!!!')
-                                    print(items.get('caption', None))
-                                    print(industry)
-                                    industry_data = True
-                                    yield items
-                                    break
+                if not type_data:
+                    if industry:
+                        industry = industry.lower().split(' ')
+                        for ii in industry:
+                            if any(media_item in ii for media_item in self.media_types):
+                                print('!!!! INDUSTRY !!!!')
+                                print(items.get('caption', None))
+                                print(industry)
+                                industry_data = True
+                                yield items
+                                break
 
-                            if not industry_data:
-                                if content:
-                                    for ii in content:
-                                        if any(media_item in ii for media_item in self.media_types):
-                                            print('!!!! CONTENT !!!')
-                                            print(items.get('caption', None))
-                                            print(content)
-                                            yield items
-                                            break
+                if not industry_data:
+                    if content:
+                        for ii in content:
+                            if any(media_item in ii for media_item in self.media_types):
+                                print('!!!! CONTENT !!!')
+                                print(items.get('caption', None))
+                                print(content)
+                                yield items
+                                break 
