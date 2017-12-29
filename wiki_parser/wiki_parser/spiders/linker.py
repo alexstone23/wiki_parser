@@ -23,6 +23,10 @@ class LinkerSpider(CrawlSpider):
         )
     ]
 
+    custom_settings = {
+        'FEED_EXPORT_FIELDS': ['caption', 'logo', 'website_link', 'table_data', 'content']
+    }
+
     def start_requests(self):
         for url in self.start_urls:
             yield scrapy.Request(url, callback=self.parse, dont_filter=True, priority=1)
@@ -120,24 +124,47 @@ class LinkerSpider(CrawlSpider):
                             yield items
                             break
 
-                if not type_data:
-                    if industry:
-                        industry = industry.lower().split(' ')
-                        for ii in industry:
-                            if any(media_item in ii for media_item in self.media_types):
-                                print('!!!! INDUSTRY !!!!')
-                                print(items.get('caption', None))
-                                print(industry)
-                                industry_data = True
-                                yield items
-                                break
+                    if not type_data:
+                        if industry:
+                            industry = industry.lower().split(' ')
+                            for ii in industry:
+                                if any(media_item in ii for media_item in self.media_types):
+                                    print('!!!! INDUSTRY !!!!')
+                                    print(items.get('caption', None))
+                                    print(industry)
+                                    industry_data = True
+                                    yield items
+                                    break
 
-                if not industry_data:
-                    if content:
-                        for ii in content:
-                            if any(media_item in ii for media_item in self.media_types):
-                                print('!!!! CONTENT !!!')
-                                print(items.get('caption', None))
-                                print(content)
-                                yield items
-                                break
+                        if not industry_data:
+                            if content:
+                                for ii in content:
+                                    if any(media_item in ii for media_item in self.media_types):
+                                        print('!!!! CONTENT !!!')
+                                        print(items.get('caption', None))
+                                        print(content)
+                                        yield items
+                                        break
+
+                elif not mt:
+                    if not type_data:
+                        if industry:
+                            industry = industry.lower().split(' ')
+                            for ii in industry:
+                                if any(media_item in ii for media_item in self.media_types):
+                                    print('!!!! INDUSTRY !!!!')
+                                    print(items.get('caption', None))
+                                    print(industry)
+                                    industry_data = True
+                                    yield items
+                                    break
+
+                        if not industry_data:
+                            if content:
+                                for ii in content:
+                                    if any(media_item in ii for media_item in self.media_types):
+                                        print('!!!! CONTENT !!!')
+                                        print(items.get('caption', None))
+                                        print(content)
+                                        yield items
+                                        break
