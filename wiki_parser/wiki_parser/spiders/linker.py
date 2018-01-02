@@ -61,17 +61,18 @@ class LinkerSpider(CrawlSpider):
         for i in response.xpath('//table[@class="infobox vcard"]'):
             items = TableParserItem()
             try:
-                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
+                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]  # Extracting logo
             except:
                 pass
 
             if not items.get('logo', None):
                 try:
-                    items['logo'] = i.xpath('.//a[@class="image"]/@href').extract()[0]
+                    items['logo'] = i.xpath('.//a[@class="image"]/@href').extract()[0]  # Extracting logo from .image
                 except:
                     pass
 
             try:
+                # Extracting table information
                 items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
                 items['table_data'] = {}
                 c = i.xpath('//*[@id="mw-content-text"]/div/p[1]//text()').extract()
@@ -81,9 +82,20 @@ class LinkerSpider(CrawlSpider):
             except IndexError:
                 pass
 
+            # Breaking loop if we haven't caption
             if not items.get('caption', None):
                 break
 
+            # Filtering extracting link from geo stuff
+            link_test = items.get('website_link', None)
+            if link_test:
+                if 'tools.wmflabs.org' in link_test:
+                    try:
+                        items['website_link'] = i.xpath('.//a[@class="external text"]/@href').extract()[-1]
+                    except:
+                        pass
+
+            # Extracting table headers
             for t in i.xpath('.//tr/td'):
                 td = t.xpath('.//text()').extract()
                 try:
@@ -94,6 +106,7 @@ class LinkerSpider(CrawlSpider):
                 if td:
                     tds.append(''.join(td))
 
+            # Extracting table cells
             for h in i.xpath('.//tr/th'):
                 th = h.xpath('.//text()').extract()
                 try:
@@ -102,23 +115,32 @@ class LinkerSpider(CrawlSpider):
                     pass
                 ths.append(th)
 
-            total = zip(ths, tds)
+            # breaking loop if data if broken
+            if len(ths) == len(tds):
+                total = zip(ths, tds)
+            else:
+                break
+
+            # Making table dict
             try:
                 for k, v in total:
                     items['table_data'][k] = v
             except:
                 pass
 
+            # Get table data
             data = items.get('table_data', None)
 
             type_data = False
             industry_data = False
 
+            # Check if data not empty
             if data:
                 industry = data.get('Industry', None)
                 mt = data.get('Type', None)
                 content = items.get('content', None)
 
+                # Finding matches in type
                 if mt:
                     mt = mt.lower().split(' ')
                     for ii in mt:
@@ -130,6 +152,7 @@ class LinkerSpider(CrawlSpider):
                             yield items
                             break
 
+                    # Start finding matches in industry
                     if not type_data:
                         if industry:
                             industry = industry.lower().split(' ')
@@ -142,6 +165,7 @@ class LinkerSpider(CrawlSpider):
                                     yield items
                                     break
 
+                        # Start finding matches in content
                         if not industry_data:
                             if content:
                                 for ii in content:
@@ -152,8 +176,11 @@ class LinkerSpider(CrawlSpider):
                                         yield items
                                         break
 
+                # Star finding if we haven't type data
                 elif not mt:
                     if not type_data:
+
+                        # Industry search
                         if industry:
                             industry = industry.lower().split(' ')
                             for ii in industry:
@@ -165,6 +192,7 @@ class LinkerSpider(CrawlSpider):
                                     yield items
                                     break
 
+                        # Search in content if we haven't any results
                         if not industry_data:
                             if content:
                                 for ii in content:

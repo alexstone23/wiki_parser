@@ -10,13 +10,11 @@ cd <env>
 
 source bin/activate
 
-pip intall -r requirements.txt
+pip install Scrapy
 
-git clone https://github.com/alexstone23/wiki_parser.git
+git clone -b linker_spider https://github.com/alexstone23/wiki_parser.git
 
 cd wiki_parser/wiki_parser/
-
-scrapy crawl wiki -o agency.csv -t csv
 
 For recursive crawling use linker spider
 
