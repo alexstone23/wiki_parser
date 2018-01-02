@@ -62,8 +62,14 @@ class LinkerSpider(CrawlSpider):
             items = TableParserItem()
             try:
                 items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
-            except IndexError:
+            except:
                 pass
+
+            if not items.get('logo', None):
+                try:
+                    items['logo'] = i.xpath('.//a[@class="image"]/@href').extract()[0]
+                except:
+                    pass
 
             try:
                 items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
