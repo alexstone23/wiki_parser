@@ -10,8 +10,7 @@ class LinkerSpider(CrawlSpider):
     allowed_domains = ['en.wikipedia.org']
     start_urls = ['https://en.wikipedia.org/wiki/News_agency']
     restricted_ext = ['ico', 'js', 'rss', 'css', 'png']
-    extracted_links = []
-    media_types = ['news media', 'news agency', 'radio', 'television', 'media analytics', 'newspapers', 'press agency', 'telecomunications']
+    media_types = ('news media', 'news agency', 'radio', 'television', 'media analytics', 'newspapers', 'press agency', 'telecomunications')
     rules = [
         Rule(
             LinkExtractor(
@@ -32,7 +31,7 @@ class LinkerSpider(CrawlSpider):
             yield scrapy.Request(url, callback=self.parse, dont_filter=True, priority=1)
 
     def parse_items(self, response):
-        items = []
+        items = set()
         links = LinkExtractor(canonicalize=True, unique=True).extract_links(response)
 
         for link in links:
@@ -44,8 +43,7 @@ class LinkerSpider(CrawlSpider):
             if is_allowed:
                 item = WikiParserItem()
                 item['url'] = link.url
-                if item.get('url') not in items:
-                    items.append(item.get('url'))
+                items.add(item.get('url'))
 
         for i in items:
             try:
@@ -145,7 +143,7 @@ class LinkerSpider(CrawlSpider):
                     mt = mt.lower().split(' ')
                     for ii in mt:
                         if any(media_item in ii for media_item in self.media_types):
-                            print('!!!! TYPE 1!!!!')
+                            print('!!!! TYPE !!!!')
                             print(items.get('caption', None))
                             print(mt)
                             type_data = True
@@ -158,7 +156,7 @@ class LinkerSpider(CrawlSpider):
                             industry = industry.lower().split(' ')
                             for ii in industry:
                                 if any(media_item in ii for media_item in self.media_types):
-                                    print('!!!! INDUSTRY 1!!!!')
+                                    print('!!!! INDUSTRY !!!!')
                                     print(items.get('caption', None))
                                     print(industry)
                                     industry_data = True
@@ -170,7 +168,7 @@ class LinkerSpider(CrawlSpider):
                             if content:
                                 for ii in content:
                                     if any(media_item in ii for media_item in self.media_types):
-                                        print('!!!! CONTENT 1!!!')
+                                        print('!!!! CONTENT !!!')
                                         print(items.get('caption', None))
                                         print(content)
                                         yield items
@@ -185,7 +183,7 @@ class LinkerSpider(CrawlSpider):
                             industry = industry.lower().split(' ')
                             for ii in industry:
                                 if any(media_item in ii for media_item in self.media_types):
-                                    print('!!!! INDUSTRY 2!!!!')
+                                    print('!!!! INDUSTRY !!!!')
                                     print(items.get('caption', None))
                                     print(industry)
                                     industry_data = True
@@ -197,7 +195,7 @@ class LinkerSpider(CrawlSpider):
                             if content:
                                 for ii in content:
                                     if any(media_item in ii for media_item in self.media_types):
-                                        print('!!!! CONTENT 2!!!')
+                                        print('!!!! CONTENT !!!')
                                         print(items.get('caption', None))
                                         print(content)
                                         yield items
