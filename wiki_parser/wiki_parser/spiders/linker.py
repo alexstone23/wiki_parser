@@ -145,7 +145,7 @@ class LinkerSpider(CrawlSpider):
                     mt = mt.lower().split(' ')
                     for ii in mt:
                         if any(media_item in ii for media_item in self.media_types):
-                            print('!!!! TYPE !!!!')
+                            print('!!!! TYPE 1!!!!')
                             print(items.get('caption', None))
                             print(mt)
                             type_data = True
@@ -158,7 +158,7 @@ class LinkerSpider(CrawlSpider):
                             industry = industry.lower().split(' ')
                             for ii in industry:
                                 if any(media_item in ii for media_item in self.media_types):
-                                    print('!!!! INDUSTRY !!!!')
+                                    print('!!!! INDUSTRY 1!!!!')
                                     print(items.get('caption', None))
                                     print(industry)
                                     industry_data = True
@@ -166,11 +166,11 @@ class LinkerSpider(CrawlSpider):
                                     break
 
                         # Start finding matches in content
-                        if not industry_data:
+                        if not industry_data and not type_data:
                             if content:
                                 for ii in content:
                                     if any(media_item in ii for media_item in self.media_types):
-                                        print('!!!! CONTENT !!!')
+                                        print('!!!! CONTENT 1!!!')
                                         print(items.get('caption', None))
                                         print(content)
                                         yield items
@@ -185,7 +185,7 @@ class LinkerSpider(CrawlSpider):
                             industry = industry.lower().split(' ')
                             for ii in industry:
                                 if any(media_item in ii for media_item in self.media_types):
-                                    print('!!!! INDUSTRY !!!!')
+                                    print('!!!! INDUSTRY 2!!!!')
                                     print(items.get('caption', None))
                                     print(industry)
                                     industry_data = True
@@ -193,12 +193,14 @@ class LinkerSpider(CrawlSpider):
                                     break
 
                         # Search in content if we haven't any results
-                        if not industry_data:
+                        if not industry_data and not type_data:
                             if content:
                                 for ii in content:
                                     if any(media_item in ii for media_item in self.media_types):
-                                        print('!!!! CONTENT !!!')
+                                        print('!!!! CONTENT 2!!!')
                                         print(items.get('caption', None))
                                         print(content)
                                         yield items
                                         break
+                else:
+                    pass
