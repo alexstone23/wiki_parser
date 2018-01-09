@@ -1,26 +1,20 @@
-Requrements:
+## Installation:
 
-requirements.txt
+virtualenv -p python3 **env**
 
-Installation:
-
-virtualenv -p python3 <env>
-
-cd <env>
+cd **env**
 
 source bin/activate
 
-pip intall -r requirements.txt
+pip install Scrapy
 
 git clone https://github.com/alexstone23/wiki_parser.git
 
 cd wiki_parser/wiki_parser/
 
-scrapy crawl wiki -o agency.csv -t csv
-
 For recursive crawling use linker spider
 
-1) Navigate into <env>/lib/python3.5/site-packages/scrapy/settings/default_settings.py
+1) Navigate into **env**/lib/python3.5/site-packages/scrapy/settings/default_settings.py
 
 2) Set up SPIDER MIDDLEWARES
 

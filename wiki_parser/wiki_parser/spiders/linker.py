@@ -10,8 +10,7 @@ class LinkerSpider(CrawlSpider):
     allowed_domains = ['en.wikipedia.org']
     start_urls = ['https://en.wikipedia.org/wiki/News_agency']
     restricted_ext = ['ico', 'js', 'rss', 'css', 'png']
-    extracted_links = []
-    media_types = ['news media', 'news agency', 'radio', 'television', 'media analytics', 'newspapers', 'press agency', 'telecomunications']
+    media_types = ('news media', 'news agency', 'radio', 'television', 'media analytics', 'newspapers', 'press agency', 'telecomunications')
     rules = [
         Rule(
             LinkExtractor(
@@ -23,12 +22,16 @@ class LinkerSpider(CrawlSpider):
         )
     ]
 
+    custom_settings = {
+        'FEED_EXPORT_FIELDS': ['caption', 'logo', 'website_link', 'table_data', 'content']
+    }
+
     def start_requests(self):
         for url in self.start_urls:
             yield scrapy.Request(url, callback=self.parse, dont_filter=True, priority=1)
 
     def parse_items(self, response):
-        items = []
+        items = set()
         links = LinkExtractor(canonicalize=True, unique=True).extract_links(response)
 
         for link in links:
@@ -40,8 +43,7 @@ class LinkerSpider(CrawlSpider):
             if is_allowed:
                 item = WikiParserItem()
                 item['url'] = link.url
-                if item.get('url') not in items:
-                    items.append(item.get('url'))
+                items.add(item.get('url'))
 
         for i in items:
             try:
@@ -55,15 +57,21 @@ class LinkerSpider(CrawlSpider):
         total = []
 
         for i in response.xpath('//table[@class="infobox vcard"]'):
+            items = TableParserItem()
             try:
-                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]
-            except IndexError:
+                items['logo'] = i.xpath('.//td[@class="logo"]/a/@href').extract()[0]  # Extracting logo
+            except:
                 pass
 
-            try:
-                items = TableParserItem()
-                items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
+            if not items.get('logo', None):
+                try:
+                    items['logo'] = i.xpath('.//a[@class="image"]/@href').extract()[0]  # Extracting logo from .image
+                except:
+                    pass
 
+            try:
+                # Extracting table information
+                items['caption'] = i.xpath('//caption[@class="fn org"]//text()').extract()[0]
                 items['table_data'] = {}
                 c = i.xpath('//*[@id="mw-content-text"]/div/p[1]//text()').extract()
                 cont = [w.strip() for w in c if w.replace('\n', '')]
@@ -72,9 +80,20 @@ class LinkerSpider(CrawlSpider):
             except IndexError:
                 pass
 
+            # Breaking loop if we haven't caption
             if not items.get('caption', None):
                 break
 
+            # Filtering extracting link from geo stuff
+            link_test = items.get('website_link', None)
+            if link_test:
+                if 'tools.wmflabs.org' in link_test:
+                    try:
+                        items['website_link'] = i.xpath('.//a[@class="external text"]/@href').extract()[-1]
+                    except:
+                        pass
+
+            # Extracting table headers
             for t in i.xpath('.//tr/td'):
                 td = t.xpath('.//text()').extract()
                 try:
@@ -85,6 +104,7 @@ class LinkerSpider(CrawlSpider):
                 if td:
                     tds.append(''.join(td))
 
+            # Extracting table cells
             for h in i.xpath('.//tr/th'):
                 th = h.xpath('.//text()').extract()
                 try:
@@ -93,23 +113,32 @@ class LinkerSpider(CrawlSpider):
                     pass
                 ths.append(th)
 
-            total = zip(ths, tds)
+            # breaking loop if data if broken
+            if len(ths) == len(tds):
+                total = zip(ths, tds)
+            else:
+                break
+
+            # Making table dict
             try:
                 for k, v in total:
                     items['table_data'][k] = v
-            except KeyError:
+            except:
                 pass
 
+            # Get table data
             data = items.get('table_data', None)
 
             type_data = False
             industry_data = False
 
+            # Check if data not empty
             if data:
                 industry = data.get('Industry', None)
                 mt = data.get('Type', None)
                 content = items.get('content', None)
 
+                # Finding matches in type
                 if mt:
                     mt = mt.lower().split(' ')
                     for ii in mt:
@@ -121,24 +150,55 @@ class LinkerSpider(CrawlSpider):
                             yield items
                             break
 
-                if not type_data:
-                    if industry:
-                        industry = industry.lower().split(' ')
-                        for ii in industry:
-                            if any(media_item in ii for media_item in self.media_types):
-                                print('!!!! INDUSTRY !!!!')
-                                print(items.get('caption', None))
-                                print(industry)
-                                industry_data = True
-                                yield items
-                                break
+                    # Start finding matches in industry
+                    if not type_data:
+                        if industry:
+                            industry = industry.lower().split(' ')
+                            for ii in industry:
+                                if any(media_item in ii for media_item in self.media_types):
+                                    print('!!!! INDUSTRY !!!!')
+                                    print(items.get('caption', None))
+                                    print(industry)
+                                    industry_data = True
+                                    yield items
+                                    break
 
-                if not industry_data:
-                    if content:
-                        for ii in content:
-                            if any(media_item in ii for media_item in self.media_types):
-                                print('!!!! CONTENT !!!')
-                                print(items.get('caption', None))
-                                print(content)
-                                yield items
-                                break 
+                        # Start finding matches in content
+                        if not industry_data and not type_data:
+                            if content:
+                                for ii in content:
+                                    if any(media_item in ii for media_item in self.media_types):
+                                        print('!!!! CONTENT !!!')
+                                        print(items.get('caption', None))
+                                        print(content)
+                                        yield items
+                                        break
+
+                # Star finding if we haven't type data
+                elif not mt:
+                    if not type_data:
+
+                        # Industry search
+                        if industry:
+                            industry = industry.lower().split(' ')
+                            for ii in industry:
+                                if any(media_item in ii for media_item in self.media_types):
+                                    print('!!!! INDUSTRY !!!!')
+                                    print(items.get('caption', None))
+                                    print(industry)
+                                    industry_data = True
+                                    yield items
+                                    break
+
+                        # Search in content if we haven't any results
+                        if not industry_data and not type_data:
+                            if content:
+                                for ii in content:
+                                    if any(media_item in ii for media_item in self.media_types):
+                                        print('!!!! CONTENT !!!')
+                                        print(items.get('caption', None))
+                                        print(content)
+                                        yield items
+                                        break
+                else:
+                    pass
